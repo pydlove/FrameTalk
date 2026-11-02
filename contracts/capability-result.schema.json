@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://frametalk.local/contracts/capability-result.schema.json",
+  "title": "CapabilityResult",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "resultFile", "artifacts"],
+  "properties": {
+    "schemaVersion": {
+      "const": "1.0"
+    },
+    "resultFile": {
+      "$ref": "#/$defs/relativePath"
+    },
+    "artifacts": {
+      "type": "array",
+      "maxItems": 500,
+      "items": {
+        "$ref": "#/$defs/artifact"
+      }
+    }
+  },
+  "$defs": {
+    "relativePath": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4096,
+      "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))[A-Za-z0-9._/-]+$"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "path", "sha256"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "script",
+            "scenes",
+            "transcript",
+            "proxy_video",
+            "preview_video",
+            "final_video",
+            "cover",
+            "metadata"
+          ]
+        },
+        "path": {
+          "$ref": "#/$defs/relativePath"
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "mimeType": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "sizeBytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "width": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "durationMs": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    }
+  }
+}

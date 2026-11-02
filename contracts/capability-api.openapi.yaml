@@ -1,0 +1,287 @@
+openapi: 3.1.0
+info:
+  title: FrameTalk Capability API
+  version: 0.1.0
+  description: Python 能力 Worker 与 Java 控制面之间的内部任务协议。
+servers:
+  - url: http://127.0.0.1:8791
+security:
+  - CapabilityToken: []
+paths:
+  /internal/v1/capability/jobs/claim:
+    post:
+      operationId: claimCapabilityJob
+      summary: 领取一个可执行能力任务
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClaimRequest'
+      responses:
+        '200':
+          description: 成功领取任务
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CapabilityJob'
+        '204':
+          description: 当前没有可执行任务
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /internal/v1/capability/jobs/{jobId}/heartbeat:
+    post:
+      operationId: heartbeatCapabilityJob
+      summary: 续租当前能力任务
+      parameters:
+        - $ref: '#/components/parameters/JobId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WorkerLeaseRequest'
+      responses:
+        '200':
+          description: 租约已续期
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LeaseResponse'
+        '409':
+          $ref: '#/components/responses/LeaseConflict'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /internal/v1/capability/jobs/{jobId}/progress:
+    post:
+      operationId: reportCapabilityProgress
+      summary: 更新能力任务阶段和进度
+      parameters:
+        - $ref: '#/components/parameters/JobId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProgressRequest'
+      responses:
+        '204':
+          description: 进度已更新
+        '409':
+          $ref: '#/components/responses/LeaseConflict'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /internal/v1/capability/jobs/{jobId}/complete:
+    post:
+      operationId: completeCapabilityJob
+      summary: 提交能力任务结果
+      parameters:
+        - $ref: '#/components/parameters/JobId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CompleteRequest'
+      responses:
+        '200':
+          description: 结果已接收
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CompleteResponse'
+        '409':
+          $ref: '#/components/responses/LeaseConflict'
+        '422':
+          description: 结果文件或产物校验失败
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /internal/v1/capability/jobs/{jobId}/fail:
+    post:
+      operationId: failCapabilityJob
+      summary: 报告能力任务失败
+      parameters:
+        - $ref: '#/components/parameters/JobId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FailRequest'
+      responses:
+        '204':
+          description: 失败状态已记录
+        '409':
+          $ref: '#/components/responses/LeaseConflict'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+components:
+  securitySchemes:
+    CapabilityToken:
+      type: apiKey
+      in: header
+      name: X-Capability-Token
+  parameters:
+    JobId:
+      name: jobId
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int64
+        minimum: 1
+  responses:
+    Unauthorized:
+      description: 内部 Token 无效
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    LeaseConflict:
+      description: 任务租约无效或已经过期
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+  schemas:
+    ClaimRequest:
+      type: object
+      additionalProperties: false
+      required: [workerId, queues, capabilities, leaseSeconds]
+      properties:
+        workerId:
+          type: string
+          minLength: 1
+          maxLength: 128
+        queues:
+          type: array
+          minItems: 1
+          items:
+            type: string
+            enum: [ai, transcribe, media, render]
+        capabilities:
+          type: array
+          minItems: 1
+          items:
+            type: string
+            pattern: '^[a-z][a-z0-9_-]*\.[a-z][a-z0-9_.-]*$'
+        leaseSeconds:
+          type: integer
+          minimum: 15
+          maximum: 300
+    CapabilityJob:
+      type: object
+      additionalProperties: false
+      required:
+        - jobId
+        - capability
+        - idempotencyKey
+        - leaseExpiresAt
+        - workDir
+        - payload
+      properties:
+        jobId:
+          type: integer
+          format: int64
+        capability:
+          type: string
+        idempotencyKey:
+          type: string
+        leaseExpiresAt:
+          type: string
+          format: date-time
+        workDir:
+          type: string
+          description: 相对于 FRAMETALK_DATA_DIR 的任务目录
+          pattern: '^(?!/)(?!.*(?:^|/)\.\.(?:/|$))[A-Za-z0-9._/-]+$'
+        payload:
+          type: object
+          additionalProperties: true
+    WorkerLeaseRequest:
+      type: object
+      additionalProperties: false
+      required: [workerId, leaseSeconds]
+      properties:
+        workerId:
+          type: string
+          minLength: 1
+        leaseSeconds:
+          type: integer
+          minimum: 15
+          maximum: 300
+    LeaseResponse:
+      type: object
+      additionalProperties: false
+      required: [leaseExpiresAt]
+      properties:
+        leaseExpiresAt:
+          type: string
+          format: date-time
+    ProgressRequest:
+      type: object
+      additionalProperties: false
+      required: [workerId, stage, progress]
+      properties:
+        workerId:
+          type: string
+          minLength: 1
+        stage:
+          type: string
+          minLength: 1
+          maxLength: 64
+        progress:
+          type: integer
+          minimum: 0
+          maximum: 100
+    CompleteRequest:
+      type: object
+      additionalProperties: false
+      required: [workerId, result]
+      properties:
+        workerId:
+          type: string
+          minLength: 1
+        result:
+          $ref: './capability-result.schema.json'
+    CompleteResponse:
+      type: object
+      additionalProperties: false
+      required: [jobId, status]
+      properties:
+        jobId:
+          type: integer
+          format: int64
+        status:
+          type: string
+          enum: [succeeded]
+    FailRequest:
+      type: object
+      additionalProperties: false
+      required: [workerId, errorCode, message, retryable]
+      properties:
+        workerId:
+          type: string
+          minLength: 1
+        errorCode:
+          type: string
+          minLength: 1
+          maxLength: 64
+        message:
+          type: string
+          minLength: 1
+          maxLength: 2000
+        retryable:
+          type: boolean
+    ErrorResponse:
+      type: object
+      additionalProperties: false
+      required: [code, message]
+      properties:
+        code:
+          type: string
+        message:
+          type: string

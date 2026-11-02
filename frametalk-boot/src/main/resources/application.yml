@@ -1,0 +1,67 @@
+server:
+  address: 127.0.0.1
+  port: ${FRAMETALK_SERVER_PORT:8791}
+
+spring:
+  application:
+    name: frametalk
+  profiles:
+    active: ${FRAMETALK_PROFILE:local}
+  datasource:
+    url: ${FRAMETALK_DB_URL:jdbc:mysql://127.0.0.1:3306/frametalk?characterEncoding=UTF-8&connectionTimeZone=UTC&useSSL=false&allowPublicKeyRetrieval=true}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: ${FRAMETALK_DB_USERNAME:frametalk_app}
+    password: ${FRAMETALK_DB_PASSWORD:}
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+    validate-on-migrate: true
+    clean-disabled: true
+    out-of-order: false
+  jackson:
+    time-zone: UTC
+  mail:
+    host: ${FRAMETALK_MAIL_HOST:}
+    port: ${FRAMETALK_MAIL_PORT:465}
+    username: ${FRAMETALK_MAIL_USERNAME:}
+    password: ${FRAMETALK_MAIL_PASSWORD:}
+    protocol: smtp
+    default-encoding: UTF-8
+    properties:
+      mail.smtp.auth: ${FRAMETALK_MAIL_AUTH:true}
+      mail.smtp.ssl.enable: ${FRAMETALK_MAIL_SSL:true}
+      mail.smtp.connectiontimeout: 10000
+      mail.smtp.timeout: 10000
+      mail.smtp.writetimeout: 10000
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: never
+
+frametalk:
+  mail:
+    mode: ${FRAMETALK_MAIL_MODE:log}
+    from: ${FRAMETALK_MAIL_FROM:${spring.mail.username:}}
+    from-name: ${FRAMETALK_MAIL_FROM_NAME:帧言}
+    trust-store: ${FRAMETALK_MAIL_TRUST_STORE:${user.home}/.frametalk/mail-truststore.p12}
+    trust-store-password: ${FRAMETALK_MAIL_TRUST_STORE_PASSWORD:frametalk-mail-trust}
+  auth:
+    cookie-name: ${FRAMETALK_AUTH_COOKIE_NAME:frametalk_session}
+    cookie-secure: ${FRAMETALK_AUTH_COOKIE_SECURE:false}
+    session-ttl: PT168H
+    remembered-session-ttl: PT4320H
+    email-code:
+      ttl: PT5M
+      resend-cooldown: PT60S
+      max-per-day: 10
+
+mybatis-plus:
+  mapper-locations: classpath*:mapper/**/*.xml
+  configuration:
+    map-underscore-to-camel-case: true

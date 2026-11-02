@@ -1,0 +1,16 @@
+spring:
+  datasource:
+    url: jdbc:mysql://127.0.0.1:3307/frametalk?characterEncoding=UTF-8&connectionTimeZone=UTC&useSSL=false&allowPublicKeyRetrieval=true
+    username: frametalk_app
+    password: "change-me-locally"
+  mail:
+    host: smtp.example.com
+    port: 465
+    username: "your-account@example.com"
+    password: "smtp-authorization-code"
+
+frametalk:
+  mail:
+    mode: smtp
+    from: "your-account@example.com"
+    from-name: 帧言

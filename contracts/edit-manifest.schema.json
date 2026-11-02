@@ -1,0 +1,263 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://frametalk.local/contracts/edit-manifest.schema.json",
+  "title": "EditManifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "projectId",
+    "projectRevision",
+    "output",
+    "tracks",
+    "assets"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "1.0"
+    },
+    "projectId": {
+      "type": "integer",
+      "format": "int64",
+      "minimum": 1
+    },
+    "projectRevision": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "output": {
+      "$ref": "#/$defs/output"
+    },
+    "tracks": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["video", "overlay", "caption", "audio"],
+      "properties": {
+        "video": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/videoClip"
+          }
+        },
+        "overlay": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/overlayClip"
+          }
+        },
+        "caption": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/captionClip"
+          }
+        },
+        "audio": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/audioClip"
+          }
+        }
+      }
+    },
+    "assets": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/assetReference"
+      }
+    }
+  },
+  "$defs": {
+    "relativePath": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4096,
+      "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))[A-Za-z0-9._/-]+$"
+    },
+    "timeRange": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["startMs", "endMs"],
+      "properties": {
+        "startMs": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "endMs": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "output": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["width", "height", "fps", "loudnessLufs"],
+      "properties": {
+        "width": {
+          "type": "integer",
+          "minimum": 240
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 240
+        },
+        "fps": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 60
+        },
+        "loudnessLufs": {
+          "type": "number",
+          "minimum": -70,
+          "maximum": 0
+        }
+      }
+    },
+    "assetReference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["assetId", "path", "kind"],
+      "properties": {
+        "assetId": {
+          "type": "integer",
+          "format": "int64",
+          "minimum": 1
+        },
+        "path": {
+          "$ref": "#/$defs/relativePath"
+        },
+        "kind": {
+          "type": "string",
+          "enum": ["video", "audio", "image", "font", "subtitle"]
+        }
+      }
+    },
+    "videoClip": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sourceAssetId",
+        "sourceRange",
+        "timelineRange",
+        "crop",
+        "transform"
+      ],
+      "properties": {
+        "sourceAssetId": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "sourceRange": {
+          "$ref": "#/$defs/timeRange"
+        },
+        "timelineRange": {
+          "$ref": "#/$defs/timeRange"
+        },
+        "crop": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["x", "y", "width", "height"],
+          "properties": {
+            "x": {
+              "type": "number",
+              "minimum": 0
+            },
+            "y": {
+              "type": "number",
+              "minimum": 0
+            },
+            "width": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "height": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            }
+          }
+        },
+        "transform": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "scale": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "x": {
+              "type": "number"
+            },
+            "y": {
+              "type": "number"
+            }
+          }
+        }
+      }
+    },
+    "overlayClip": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "timelineRange", "type", "content"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "timelineRange": {
+          "$ref": "#/$defs/timeRange"
+        },
+        "type": {
+          "type": "string",
+          "enum": ["text", "image", "shape", "chart"]
+        },
+        "content": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      }
+    },
+    "captionClip": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "timelineRange", "text"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "timelineRange": {
+          "$ref": "#/$defs/timeRange"
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1
+        },
+        "styleId": {
+          "type": "string"
+        }
+      }
+    },
+    "audioClip": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sourceAssetId", "sourceRange", "timelineRange"],
+      "properties": {
+        "sourceAssetId": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "sourceRange": {
+          "$ref": "#/$defs/timeRange"
+        },
+        "timelineRange": {
+          "$ref": "#/$defs/timeRange"
+        },
+        "volume": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 2
+        }
+      }
+    }
+  }
+}
